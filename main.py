@@ -1,38 +1,54 @@
 from ortools.linear_solver import pywraplp
 
+def schedule_optimizer():
+    # Create the solver
+    solver = pywraplp.Solver.CreateSolver('GLOP')
 
-def main():
-    # Create the linear solver with the GLOP backend.
-    solver = pywraplp.Solver.CreateSolver("GLOP")
-    if not solver:
-        return
+    # Data
+    workers = ['Worker_1', 'Worker_2', 'Worker_3']
+    tasks = ['Task_1', 'Task_2', 'Task_3', 'Task_4']
 
-    # Create the variables x and y.
-    x = solver.NumVar(0, 1, "x")
-    y = solver.NumVar(0, 2, "y")
+    time_matrix = [
+        [2, 4, 5, 6],  # Time taken for Worker_1 for each task
+        [3, 2, 3, 1],  # Time taken for Worker_2 for each task
+        [5, 3, 2, 8]   # Time taken for Worker_3 for each task
+    ]
 
-    print("Number of variables =", solver.NumVariables())
+    # Variables
+    # x[i][j] is an array of 0/1 variables, which will be 1 if worker i is assigned to task j.
+    x = []
+    for i in range(len(workers)):
+        x.append([])
+        for j in range(len(tasks)):
+            x[i].append(solver.BoolVar(f'x[{i}][{j}]'))
 
-    # Create a linear constraint, 0 <= x + y <= 2.
-    ct = solver.Constraint(0, 2, "ct")
-    ct.SetCoefficient(x, 1)
-    ct.SetCoefficient(y, 1)
+    # Constraints
+    # Each worker is assigned to at most one task.
+    for i in range(len(workers)):
+        solver.Add(sum(x[i][j] for j in range(len(tasks))) <= 1)
 
-    print("Number of constraints =", solver.NumConstraints())
+    # Each task is assigned to exactly one worker.
+    for j in range(len(tasks)):
+        solver.Add(sum(x[i][j] for i in range(len(workers))) == 1)
 
-    # Create the objective function, 3 * x + y.
-    objective = solver.Objective()
-    objective.SetCoefficient(x, 3)
-    objective.SetCoefficient(y, 1)
-    objective.SetMaximization()
+    # Objective
+    objective_terms = []
+    for i in range(len(workers)):
+        for j in range(len(tasks)):
+            objective_terms.append(time_matrix[i][j] * x[i][j])
+    solver.Minimize(solver.Sum(objective_terms))
 
-    solver.Solve()
+    # Solve
+    status = solver.Solve()
 
-    print("Solution:")
-    print("Objective value =", objective.Value())
-    print("x =", x.solution_value())
-    print("y =", y.solution_value())
+    if status == pywraplp.Solver.OPTIMAL:
+        print('Objective value =', solver.Objective().Value())
+        for i in range(len(workers)):
+            for j in range(len(tasks)):
+                if x[i][j].solution_value():
+                    print(f'{workers[i]} assigned to {tasks[j]} taking {time_matrix[i][j]} hours.')
+    else:
+        print('The problem does not have an optimal solution.')
 
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    schedule_optimizer()
