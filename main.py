@@ -148,6 +148,7 @@ if __name__ == "__main__":
         if optimized_schedule == None:
             reservations.pop()
         count += 1
+        print(len())
         print(count)
     print(count)
     reservations.pop()
