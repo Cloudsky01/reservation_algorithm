@@ -1,4 +1,37 @@
 from ortools.sat.python import cp_model
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
+def visualize_solution_plot(reservations, assignments, num_rooms):
+    """
+    Visualize the reservation assignments.
+    
+    reservations: List of reservation dicts with "start" and "end" keys.
+    assignments: Result of the optimizer (2D list) where assignments[i][j] == 1 indicates
+                 that reservation i is assigned to room j.
+    num_rooms: Number of rooms.
+    """
+    
+    # Set up the figure and axis
+    fig, ax = plt.subplots(figsize=(10, num_rooms))
+    ax.set_xlim(min(r['start'] for r in reservations), max(r['end'] for r in reservations))
+    ax.set_ylim(0, num_rooms)
+    
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Room')
+    ax.set_yticks([i + 0.5 for i in range(num_rooms)])
+    ax.set_yticklabels([f'Room {i + 1}' for i in range(num_rooms)])
+    
+    # Loop through each reservation and room, checking assignments
+    for i, reservation in enumerate(reservations):
+        for j in range(num_rooms):
+            if assignments[i][j] == 1:  # If reservation i is assigned to room j
+                rect = patches.Rectangle((reservation['start'], j), reservation['end'] - reservation['start'], 1, facecolor='blue', edgecolor='black')
+                ax.add_patch(rect)
+                ax.text((reservation['start'] + reservation['end']) / 2, j + 0.5, f"R{i}", ha='center', va='center', color='white')
+                
+    plt.tight_layout()
+    plt.show()
 
 def visualize_schedule(optimized_schedule, reservations):
     """
@@ -127,8 +160,11 @@ reservations = [
     {"start": 22, "end": 24},
 ]
 
-optimized_schedule = schedule_optimizer(reservations)
-print("Optimized Schedule:")
-visualize_schedule(optimized_schedule, reservations)
+
+if __name__ == "__main__":
+    optimized_schedule = schedule_optimizer(reservations)
+    print("Optimized Schedule:")
+    visualize_schedule(optimized_schedule, reservations)
+    visualize_solution_plot(reservations, optimized_schedule, len(optimized_schedule[0]))
 
 
