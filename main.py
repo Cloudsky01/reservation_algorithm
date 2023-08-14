@@ -1,4 +1,37 @@
 from ortools.sat.python import cp_model
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
+def visualize_solution(reservations, assignments, num_rooms):
+    """
+    Visualize the reservation assignments.
+    
+    reservations: List of reservation dicts with "start" and "end" keys.
+    assignments: Result of the optimizer (2D list) where assignments[i][j] == 1 indicates
+                 that reservation i is assigned to room j.
+    num_rooms: Number of rooms.
+    """
+    
+    # Set up the figure and axis
+    fig, ax = plt.subplots(figsize=(10, num_rooms))
+    ax.set_xlim(min(r['start'] for r in reservations), max(r['end'] for r in reservations))
+    ax.set_ylim(0, num_rooms)
+    
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Room')
+    ax.set_yticks([i + 0.5 for i in range(num_rooms)])
+    ax.set_yticklabels([f'Room {i + 1}' for i in range(num_rooms)])
+    
+    # Loop through each reservation and room, checking assignments
+    for i, reservation in enumerate(reservations):
+        for j in range(num_rooms):
+            if assignments[i][j] == 1:  # If reservation i is assigned to room j
+                rect = patches.Rectangle((reservation['start'], j), reservation['end'] - reservation['start'], 1, facecolor='blue', edgecolor='black')
+                ax.add_patch(rect)
+                ax.text((reservation['start'] + reservation['end']) / 2, j + 0.5, f"R{i}", ha='center', va='center', color='white')
+                
+    plt.tight_layout()
+    plt.show()
 
 def schedule_optimizer(reservations, num_rooms):
     model = cp_model.CpModel()
@@ -60,7 +93,10 @@ reservations = [
     {"start": 11, "end": 12},
     {"start": 13, "end": 14},
     {"start": 9, "end": 11},
+    {"start": 10, "end": 12},
+    {"start": 14, "end": 15},
+    {"start": 15, "end": 16},
 ]
 
 num_rooms = 2
-schedule_optimizer(reservations, num_rooms)
+assignment = schedule_optimizer(reservations, num_rooms)
