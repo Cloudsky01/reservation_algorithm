@@ -79,6 +79,18 @@ def is_schedulable(reservations, num_rooms_guess):
     # overlap[i1][i2][j] = 1 if reservation i1 and i2 overlap in room j
     overlap = [[[model.NewBoolVar(f"overlap_{i1}_{i2}_{j}") for j in range(num_rooms_guess)] for i2 in range(num_reservations)] for i1 in range(num_reservations)]
 
+    """
+        1. Create a boolean variable for each reservation-room assignment. - model.NewBoolVar(f"assignment_{i}_{j}")
+        i1, i2, j = boolean variables 
+        i1 = 1
+        i2 = 2
+        j = 1
+        ====
+        i1 = 2
+        i2 = 2
+        j = 1
+    """
+
     # Define overlap variable
     """
         Depends on the following constraints:
@@ -86,14 +98,21 @@ def is_schedulable(reservations, num_rooms_guess):
         For each pair of reservations (i1, i2) and for each room j, if both assignment[i1][j] and assignment[i2][j] are true, then overlap[i1][i2][j] should be true.
         For each pair of reservations (i1, i2) and for each room j, if overlap[i1][i2][j] is true, then at least one of assignment[i1][j] and assignment[i2][j] should be false.
     """
+    # For each rooms 
+    # O (r n ^ 2)
     for j in range(num_rooms_guess):
+        # For each reservations = 1
+        # (O n^2)
         for i1 in range(num_reservations):
+            # For each reservations = 2
             for i2 in range(i1 + 1, num_reservations):
                 # If there is an overlap, then both assignments must be true
                 model.AddImplication(overlap[i1][i2][j], assignment[i1][j])
                 model.AddImplication(overlap[i1][i2][j], assignment[i2][j])
                 model.AddBoolOr([overlap[i1][i2][j].Not(), assignment[i1][j].Not()])
                 model.AddBoolOr([overlap[i1][i2][j].Not(), assignment[i2][j].Not()])
+
+    
 
     for i, reservation in enumerate(reservations):
         if 'wantedRoom' in reservation:
@@ -128,6 +147,7 @@ def is_schedulable(reservations, num_rooms_guess):
     return None
 
 def schedule_optimizer(reservations):
+    # max_rooms by parameter
     max_rooms = len(reservations)
     min_rooms = 1
 
@@ -135,6 +155,7 @@ def schedule_optimizer(reservations):
     while min_rooms < max_rooms:
         mid = (min_rooms + max_rooms) // 2
         schedule = is_schedulable(reservations, mid)
+        print(schedule)
 
         if schedule:
             max_rooms = mid
@@ -154,7 +175,7 @@ reservations = [
     {"start": 10, "end": 12},
     {"start": 10, "end": 12},
     {"start": 10, "end": 12},
-    {"start": 14, "end": 16},
+    {"start": 14, "end": 16, "wantedRoom": 0},
     {"start": 15, "end": 17},
     {"start": 16, "end": 18},
     {"start": 17, "end": 19},
@@ -169,7 +190,7 @@ reservations = [
 if __name__ == "__main__":
     optimized_schedule = schedule_optimizer(reservations)
     print("Optimized Schedule:")
-    visualize_schedule(optimized_schedule, reservations)
+    # visualize_schedule(optimized_schedule, reservations)
     visualize_solution_plot(reservations, optimized_schedule, len(optimized_schedule[0]))
 
 
