@@ -95,6 +95,11 @@ def is_schedulable(reservations, num_rooms_guess):
                 model.AddBoolOr([overlap[i1][i2][j].Not(), assignment[i1][j].Not()])
                 model.AddBoolOr([overlap[i1][i2][j].Not(), assignment[i2][j].Not()])
 
+    for i, reservation in enumerate(reservations):
+        if 'wantedRoom' in reservation:
+            preferred_room = reservation['wantedRoom']
+            model.Add(assignment[i][preferred_room] == 1)
+
     # Objective: minimize gap time using overlap variable
     """
         The objective is to minimize the gap time.
@@ -141,8 +146,8 @@ def schedule_optimizer(reservations):
 
 # Example reservations
 reservations = [
-    {"start": 8, "end": 10},
-    {"start": 11, "end": 12},
+    {"start": 8, "end": 10, "wantedRoom": 1},
+    {"start": 11, "end": 12, "wantedRoom": 1},
     {"start": 13, "end": 15},
     {"start": 9, "end": 11},
     {"start": 10, "end": 12},
