@@ -1,54 +1,66 @@
-from ortools.linear_solver import pywraplp
+from ortools.sat.python import cp_model
 
-def schedule_optimizer():
-    # Create the solver
-    solver = pywraplp.Solver.CreateSolver('GLOP')
+def schedule_optimizer(reservations, num_rooms):
+    model = cp_model.CpModel()
 
-    # Data
-    workers = ['Worker_1', 'Worker_2', 'Worker_3']
-    tasks = ['Task_1', 'Task_2', 'Task_3', 'Task_4']
+    num_reservations = len(reservations)
 
-    time_matrix = [
-        [2, 4, 5, 6],  # Time taken for Worker_1 for each task
-        [3, 2, 3, 1],  # Time taken for Worker_2 for each task
-        [5, 3, 2, 8]   # Time taken for Worker_3 for each task
-    ]
+    # Variables: assignment[i][j] is True if reservation i is assigned to room j
+    assignment = [[model.NewBoolVar(f"assignment_{i}_{j}")
+                   for j in range(num_rooms)]
+                  for i in range(num_reservations)]
 
-    # Variables
-    # x[i][j] is an array of 0/1 variables, which will be 1 if worker i is assigned to task j.
-    x = []
-    for i in range(len(workers)):
-        x.append([])
-        for j in range(len(tasks)):
-            x[i].append(solver.BoolVar(f'x[{i}][{j}]'))
+    # Each reservation is assigned to exactly one room
+    for i in range(num_reservations):
+        model.Add(sum(assignment[i]) == 1)
 
-    # Constraints
-    # Each worker is assigned to at most one task.
-    for i in range(len(workers)):
-        solver.Add(sum(x[i][j] for j in range(len(tasks))) <= 1)
+    # No overlapping reservations in the same room
+    for j in range(num_rooms):
+        for i1 in range(num_reservations):
+            for i2 in range(i1 + 1, num_reservations):
+                # If two reservations overlap, they can't be in the same room
+                if not (reservations[i1]['end'] <= reservations[i2]['start'] or reservations[i1]['start'] >= reservations[i2]['end']):
+                    model.Add(assignment[i1][j] + assignment[i2][j] <= 1)
 
-    # Each task is assigned to exactly one worker.
-    for j in range(len(tasks)):
-        solver.Add(sum(x[i][j] for i in range(len(workers))) == 1)
+    # Compute the gaps between reservations in the same room
+    total_gap_time = model.NewIntVar(0, 24*60*num_rooms, "total_gap_time")
+    gaps = []
 
-    # Objective
-    objective_terms = []
-    for i in range(len(workers)):
-        for j in range(len(tasks)):
-            objective_terms.append(time_matrix[i][j] * x[i][j])
-    solver.Minimize(solver.Sum(objective_terms))
+    for j in range(num_rooms):
+        for i1 in range(num_reservations):
+            for i2 in range(i1 + 1, num_reservations):
+                # If two reservations do not overlap and are in the same room, compute the gap
+                if reservations[i1]['end'] <= reservations[i2]['start']:
+                    gap = reservations[i2]['start'] - reservations[i1]['end']
+                    gap_var = model.NewIntVar(0, 24*60, f"gap_{i1}_{i2}_{j}")
+                    model.Add(gap_var == gap).OnlyEnforceIf([assignment[i1][j], assignment[i2][j]])
+                    gaps.append(gap_var)
+
+    model.Add(total_gap_time == sum(gaps))
+    model.Minimize(total_gap_time)
 
     # Solve
-    status = solver.Solve()
+    solver = cp_model.CpSolver()
+    status = solver.Solve(model)
 
-    if status == pywraplp.Solver.OPTIMAL:
-        print('Objective value =', solver.Objective().Value())
-        for i in range(len(workers)):
-            for j in range(len(tasks)):
-                if x[i][j].solution_value():
-                    print(f'{workers[i]} assigned to {tasks[j]} taking {time_matrix[i][j]} hours.')
+    # Print results
+    if status == cp_model.OPTIMAL:
+        print(f"Minimum total gap time: {solver.Value(total_gap_time)} minutes")
+        for i in range(num_reservations):
+            for j in range(num_rooms):
+                if solver.Value(assignment[i][j]):
+                    print(f"Reservation {i} -> Room {j}")
     else:
-        print('The problem does not have an optimal solution.')
+        print("No solution found!")
 
-if __name__ == '__main__':
-    schedule_optimizer()
+
+# Example data
+reservations = [
+    {"start": 8, "end": 10},
+    {"start": 11, "end": 12},
+    {"start": 13, "end": 14},
+    {"start": 9, "end": 11},
+]
+
+num_rooms = 2
+schedule_optimizer(reservations, num_rooms)
