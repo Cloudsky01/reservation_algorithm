@@ -83,6 +83,7 @@ def schedule_optimizer(reservations, num_rooms):
             for j in range(num_rooms):
                 if solver.Value(assignment[i][j]):
                     print(f"Reservation {i} -> Room {j}")
+        visualize_solution(reservations, [[solver.Value(assignment[i][j]) for j in range(num_rooms)] for i in range(num_reservations)], num_rooms)
     else:
         print("No solution found!")
 
@@ -100,3 +101,4 @@ reservations = [
 
 num_rooms = 2
 assignment = schedule_optimizer(reservations, num_rooms)
+
