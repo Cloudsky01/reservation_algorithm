@@ -1,4 +1,5 @@
 from ortools.sat.python import cp_model
+import random
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -20,7 +21,7 @@ def visualize_solution_plot(reservations, assignments, num_rooms):
     ax.set_xlabel('Time')
     ax.set_ylabel('Room')
     ax.set_yticks([i + 0.5 for i in range(num_rooms)])
-    ax.set_yticklabels([f'Room {i + 1}' for i in range(num_rooms)])
+    ax.set_yticklabels([f'Room {i}' for i in range(num_rooms)])
     
     # Loop through each reservation and room, checking assignments
     for i, reservation in enumerate(reservations):
@@ -53,7 +54,7 @@ It returns a schedule if the reservations can be scheduled in the given number o
 Otherwise, it returns None.
 """
 
-def is_schedulable(reservations, num_rooms_guess):
+def is_schedulable(reservations, num_rooms_guess, start_time=0, end_time=24):
     model = cp_model.CpModel()
     num_reservations = len(reservations)
 
@@ -64,10 +65,12 @@ def is_schedulable(reservations, num_rooms_guess):
         for i in range(num_reservations)
     ]
 
+    # OK - Number 4
     # Each reservation is assigned to exactly one room
     for i in range(num_reservations):
         model.Add(sum(assignment[i]) == 1)
 
+    # OK - Number 2
     # No overlapping reservations in the same room
     for j in range(num_rooms_guess):
         for i1 in range(num_reservations):
@@ -75,64 +78,31 @@ def is_schedulable(reservations, num_rooms_guess):
                 if not (reservations[i1]['end'] <= reservations[i2]['start'] or reservations[i1]['start'] >= reservations[i2]['end']):
                     model.Add(assignment[i1][j] + assignment[i2][j] <= 1)
 
-    # Intermediate variable to represent overlap for gap computation
-    # overlap[i1][i2][j] = 1 if reservation i1 and i2 overlap in room j
-    overlap = [[[model.NewBoolVar(f"overlap_{i1}_{i2}_{j}") for j in range(num_rooms_guess)] for i2 in range(num_reservations)] for i1 in range(num_reservations)]
 
-    """
-        1. Create a boolean variable for each reservation-room assignment. - model.NewBoolVar(f"assignment_{i}_{j}")
-        i1, i2, j = boolean variables 
-        i1 = 1
-        i2 = 2
-        j = 1
-        ====
-        i1 = 2
-        i2 = 2
-        j = 1
-    """
+    # NOT OK - Number 1
+    gaps = [[model.NewBoolVar(f"gap_{j}_time_{t}") for t in range(end_time - start_time)] for j in range(num_rooms_guess)]
 
-    # Define overlap variable
-    """
-        Depends on the following constraints:
-        The overlap variable is dependent on the assignment variables.
-        For each pair of reservations (i1, i2) and for each room j, if both assignment[i1][j] and assignment[i2][j] are true, then overlap[i1][i2][j] should be true.
-        For each pair of reservations (i1, i2) and for each room j, if overlap[i1][i2][j] is true, then at least one of assignment[i1][j] and assignment[i2][j] should be false.
-    """
-    # For each rooms 
-    # O (r n ^ 2)
+    result_start = []
+    result_end = []
+
     for j in range(num_rooms_guess):
-        # For each reservations = 1
-        # (O n^2)
-        for i1 in range(num_reservations):
-            # For each reservations = 2
-            for i2 in range(i1 + 1, num_reservations):
-                # If there is an overlap, then both assignments must be true
-                model.AddImplication(overlap[i1][i2][j], assignment[i1][j])
-                model.AddImplication(overlap[i1][i2][j], assignment[i2][j])
-                model.AddBoolOr([overlap[i1][i2][j].Not(), assignment[i1][j].Not()])
-                model.AddBoolOr([overlap[i1][i2][j].Not(), assignment[i2][j].Not()])
+        for t in range(end_time - start_time):
+            result_start = [assignment[i][j] for i, reservation in enumerate(reservations) if reservation['start'] == t]
+            result_end = [assignment[i][j] for i, reservation in enumerate(reservations) if reservation['end'] == t]
+            model.Add(sum(result_end) - sum(result_start) <= gaps[j][t])
 
-    
-
+            
+    # OK - Number 3
     for i, reservation in enumerate(reservations):
         if 'wantedRoom' in reservation:
             preferred_room = reservation['wantedRoom']
             model.Add(assignment[i][preferred_room] == 1)
 
     # Objective: minimize gap time using overlap variable
-    """
-        The objective is to minimize the gap time.
-        The gap time is the time between the end of one reservation and the start of the next reservation.
-        The gap time is computed for each pair of reservations (i1, i2) and for each room j.
-        The gap time is computed as the difference between the start of reservation i2 and the end of reservation i1, multiplied by the overlap variable.
-    """
     gap_time = []
-    for j in range(num_rooms_guess):
-        for i1 in range(num_reservations):
-            for i2 in range(i1 + 1, num_reservations):
-                if reservations[i1]['end'] <= reservations[i2]['start']:
-                    gap = (reservations[i2]['start'] - reservations[i1]['end']) * overlap[i1][i2][j]
-                    gap_time.append(gap)
+    for t in gaps:
+        for r in t:
+            gap_time.append(r)
     model.Minimize(sum(gap_time))
 
     solver = cp_model.CpSolver()
@@ -144,52 +114,46 @@ def is_schedulable(reservations, num_rooms_guess):
             for i in range(num_reservations)
         ]
         return optimized_schedule
+    else: 
+        print("No solution found")
     return None
 
-def schedule_optimizer(reservations):
-    # max_rooms by parameter
-    max_rooms = len(reservations)
-    min_rooms = 1
-
-    # Binary search for the minimum number of rooms
-    while min_rooms < max_rooms:
-        mid = (min_rooms + max_rooms) // 2
-        schedule = is_schedulable(reservations, mid)
-        print(schedule)
-
-        if schedule:
-            max_rooms = mid
-        else:
-            min_rooms = mid + 1
-
-    # Return the optimal schedule for the minimum number of rooms found
-    return is_schedulable(reservations, min_rooms)
 
 # Example reservations
 reservations = [
     {"start": 8, "end": 10, "wantedRoom": 1},
-    {"start": 11, "end": 12, "wantedRoom": 1},
-    {"start": 13, "end": 15},
-    {"start": 9, "end": 11},
-    {"start": 10, "end": 12},
-    {"start": 10, "end": 12},
-    {"start": 10, "end": 12},
-    {"start": 10, "end": 12},
-    {"start": 14, "end": 16, "wantedRoom": 0},
-    {"start": 15, "end": 17},
-    {"start": 16, "end": 18},
-    {"start": 17, "end": 19},
-    {"start": 18, "end": 20},
-    {"start": 19, "end": 21},
-    {"start": 20, "end": 22},
-    {"start": 21, "end": 23},
-    {"start": 22, "end": 24},
 ]
 
 
+def generate_random_reservations_without_wanted_room(start_time, end_time):
+    """
+    Generate a list of random reservations without the 'wantedRoom' attribute.
+    
+    num_reservations: Number of reservations to generate.
+    start_time: Start time range for reservations.
+    end_time: End time range for reservations.
+    """
+    start = random.randint(start_time, end_time - 4)
+    end = random.randint(start + 1, start + 4)
+    reservation = {"start": start, "end": end}
+    return reservation
+
 if __name__ == "__main__":
-    optimized_schedule = schedule_optimizer(reservations)
-    print("Optimized Schedule:")
+    optimized_schedule = is_schedulable(reservations, 15)
+    count = 0
+    while len(reservations) != 80:
+        reservation = generate_random_reservations_without_wanted_room(8, 24)
+        reservations.append(reservation)
+        optimized_schedule = is_schedulable(reservations, 15)
+        if optimized_schedule == None:
+            reservations.pop()
+        count += 1
+        print(count)
+    print(count)
+    reservations.pop()
+    optimized_schedule = is_schedulable(reservations, 15)
+    # print("Optimized Schedule:")
+    # print(optimized_schedule)
     # visualize_schedule(optimized_schedule, reservations)
     visualize_solution_plot(reservations, optimized_schedule, len(optimized_schedule[0]))
 
