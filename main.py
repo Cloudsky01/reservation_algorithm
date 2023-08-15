@@ -1,10 +1,16 @@
 from ortools.sat.python import cp_model
 import random
+
+import matplotlib
+
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+
 from flask import Flask, request, jsonify
 import random
-from parser import Sheet, Reservation, Room
+from parser import Sheet, Reservation
 import requests
 
 app = Flask(__name__)
@@ -21,7 +27,7 @@ def visualize_solution_plot(reservations: list[Reservation], assignments, num_ro
     
     # Set up the figure and axis
     fig, ax = plt.subplots(figsize=(10, num_rooms))
-    ax.set_xlim(min(r['startTime'] for r in reservations), max(r.endTime for r in reservations))
+    ax.set_xlim(min(r.startTime for r in reservations), max(r.endTime for r in reservations))
     ax.set_ylim(0, num_rooms)
     
     ax.set_xlabel('Time')
@@ -38,7 +44,7 @@ def visualize_solution_plot(reservations: list[Reservation], assignments, num_ro
                 ax.text((reservation.startTime + reservation.endTime) / 2, j + 0.5, f"R{i}", ha='center', va='center', color='white')
                 
     plt.tight_layout()
-    plt.show()
+    plt.savefig('schedule.png')
 
 """
 The is_schedulable function takes in a list of reservations and a number of rooms to guess.
@@ -47,10 +53,6 @@ Otherwise, it returns None.
 """
 
 def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_time: int, end_time: int):
-    print("Start time: ", start_time)
-    print("End time: ", end_time)
-    print("Reservations: ", reservations)
-    [print(reservation.startTime) for reservation in reservations]
     model = cp_model.CpModel()
     num_reservations = len(reservations)
 
@@ -90,10 +92,10 @@ def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_
             
     # OK - Number 3
     # TODO : Fix this constraint
-    for i, reservation in enumerate(reservations):
-        if 'wantedRoom' in reservation.wantedRooms:
-            preferred_room = reservation.wantedRooms
-            model.Add(assignment[i][preferred_room] == 1)
+    # for i, reservation in enumerate(reservations):
+    #     if 'wantedRoom' in reservation.wantedRooms:
+    #         preferred_room = reservation.wantedRooms
+    #         model.Add(assignment[i][preferred_room] == 1)
 
     # Objective: minimize gap time using overlap variable
     gap_time = []
@@ -135,12 +137,16 @@ def index():
 @app.route('/schedule', methods=['POST'])
 def schedule():
     try:
-        sheet = request.get_json()
-        sheet = Sheet(sheet)
-        [print(reservation.startTime) for reservation in sheet.reservations]
-        return is_schedulable(sheet.reservations, sheet.numRooms, int(sheet.startTime), int(sheet.endTime))
+        sheet_data = request.get_json()
+        sheet = Sheet(sheet_data)
+        sheet.optimizedSheet = is_schedulable(sheet.reservations, sheet.numRooms, int(sheet.startTime), int(sheet.endTime))
+        sheet.transform_assignment()
+        [print(reservation.actualRooms) for reservation in sheet.reservations]
+
+        sheet.transform_into_original_data_format()
+        return sheet.sheet
     except:
-        return "Error"    
+        return "Error"
 
 
 
