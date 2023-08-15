@@ -2,6 +2,12 @@ from ortools.sat.python import cp_model
 import random
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from flask import Flask, request, jsonify
+import random
+from parser import Sheet
+import requests
+
+app = Flask(__name__)
 
 def visualize_solution_plot(reservations, assignments, num_rooms):
     """
@@ -33,20 +39,6 @@ def visualize_solution_plot(reservations, assignments, num_rooms):
                 
     plt.tight_layout()
     plt.show()
-
-def visualize_schedule(optimized_schedule, reservations):
-    """
-    Visualizes the optimized schedule in matrix form.
-    Rows: Reservations with their start and end times
-    Columns: Rooms
-    'X' indicates the room assignment for a reservation.
-    """
-    print(" " * 15 + "|".join(f" Room {i+1} " for i in range(len(optimized_schedule[0]))))
-    print("-" * (8 * len(optimized_schedule[0]) + 14))
-    for i, room_assignments in enumerate(optimized_schedule):
-        timing = f"({reservations[i]['start']}-{reservations[i]['end']})"
-        row = f"Rsv {i+1} {timing:<7}" + "".join("    X   " if room else "        " for room in room_assignments)
-        print(row)
 
 """
 The is_schedulable function takes in a list of reservations and a number of rooms to guess.
@@ -118,13 +110,6 @@ def is_schedulable(reservations, num_rooms_guess, start_time=0, end_time=24):
         print("No solution found")
     return None
 
-
-# Example reservations
-reservations = [
-    {"start": 8, "end": 10, "wantedRoom": 1},
-]
-
-
 def generate_random_reservations_without_wanted_room(start_time, end_time):
     """
     Generate a list of random reservations without the 'wantedRoom' attribute.
@@ -138,24 +123,23 @@ def generate_random_reservations_without_wanted_room(start_time, end_time):
     reservation = {"start": start, "end": end}
     return reservation
 
-if __name__ == "__main__":
-    optimized_schedule = is_schedulable(reservations, 15)
-    count = 0
-    while len(reservations) != 80:
-        reservation = generate_random_reservations_without_wanted_room(8, 24)
-        reservations.append(reservation)
-        optimized_schedule = is_schedulable(reservations, 15)
-        if optimized_schedule == None:
-            reservations.pop()
-        count += 1
-        print(len())
-        print(count)
-    print(count)
-    reservations.pop()
-    optimized_schedule = is_schedulable(reservations, 15)
-    # print("Optimized Schedule:")
-    # print(optimized_schedule)
-    # visualize_schedule(optimized_schedule, reservations)
-    visualize_solution_plot(reservations, optimized_schedule, len(optimized_schedule[0]))
+@app.route('/', methods=['GET'])
+def index():
+    return "Hello World!"
+
+@app.route('/schedule', methods=['POST'])
+def schedule():
+    sheet = request.get_json()
+    sheet = Sheet(sheet)
+    [print(reservation.startTime) for reservation in sheet.reservations]
+    # Insert data treatment here
+    return request.data
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+
 
 
