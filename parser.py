@@ -1,7 +1,7 @@
 class Reservation:
     def __init__(self, data):
-        self.startTime = data['startTime']
-        self.endTime = data['endTime']
+        self.startTime = convertToHours(data['startTime'])
+        self.endTime = convertToHours(data['endTime'])
         self.wantedRooms = data['wantedRooms']
         self.actualRooms = data['actualRooms']
 
@@ -17,6 +17,11 @@ class Sheet:
     def __init__(self, data):
         self.connections = [Connection(connection) for connection in data['connections']]
         self.reservations = [Reservation(reservation) for reservation in data['reservation']]
+        self.numRooms = len(data['connections'])
         self.increment = data['increment']
-        self.startTime = data['startTime']
-        self.endTime = data['endTime']
+        self.startTime: int = convertToHours(data['startTime'])
+        self.endTime: int = convertToHours(data['endTime'])
+
+
+def convertToHours(ms) -> int:
+    return ms / 3600000
