@@ -51,7 +51,7 @@ It returns a schedule if the reservations can be scheduled in the given number o
 Otherwise, it returns None.
 """
 
-def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_time: int, end_time: int):
+def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_time: int, end_time: int, sheet: Sheet):
     model = cp_model.CpModel()
     num_reservations = len(reservations)
 
@@ -90,11 +90,12 @@ def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_
 
             
     # OK - Number 3
-    # TODO : Fix this constraint
-    # for i, reservation in enumerate(reservations):
-    #     if 'wantedRoom' in reservation.wantedRooms:
-    #         preferred_room = reservation.wantedRooms
-    #         model.Add(assignment[i][preferred_room] == 1)
+    # Enforcing wantedRoom constraint
+    for i, reservation in enumerate(reservations):
+        if reservation.wantedRooms:  # Check if the reservation has a wantedRoom
+            room_index = sheet.get_room_index(reservation.wantedRooms.room)  # Use the method from the Sheet class
+            if room_index is not None:  # Check if we got a valid room index
+                model.Add(assignment[i][room_index] == 1)
 
     # Objective: minimize gap time using overlap variable
     gap_time = []
@@ -138,7 +139,7 @@ def schedule():
     try:
         sheet_data = request.get_json()
         sheet = Sheet(sheet_data)
-        sheet.optimizedSheet = is_schedulable(sheet.reservations, sheet.numRooms, int(sheet.startTime), int(sheet.endTime))
+        sheet.optimizedSheet = is_schedulable(sheet.reservations, sheet.numRooms, int(sheet.startTime), int(sheet.endTime), sheet)
         sheet.transform_assignment()
         sheet.group_reservations_by_id()
         [print(reservation.id) for reservation in sheet.reservations]

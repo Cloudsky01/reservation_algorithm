@@ -35,6 +35,13 @@ class Sheet:
         self.endTime: int = convertToHours(data['endTime'])
         self.optimizedSheet: OptimizedSheet = None
 
+    def get_room_index(self, room_name):
+        for index, connection in enumerate(self.connections):
+            if connection.name == room_name:
+                return index
+        return None  # Returns None if the room is not found
+
+
     def transform_assignment(self):
         for i, assignment_list in enumerate(self.optimizedSheet):
             for j, is_assigned in enumerate(assignment_list):
