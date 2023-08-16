@@ -11,7 +11,6 @@ import matplotlib.patches as patches
 from flask import Flask, request, jsonify
 import random
 from parser import Sheet, Reservation
-import requests
 
 app = Flask(__name__)
 
@@ -141,8 +140,8 @@ def schedule():
         sheet = Sheet(sheet_data)
         sheet.optimizedSheet = is_schedulable(sheet.reservations, sheet.numRooms, int(sheet.startTime), int(sheet.endTime))
         sheet.transform_assignment()
-        [print(reservation.actualRooms) for reservation in sheet.reservations]
-
+        [print(reservation.id) for reservation in sheet.reservations]
+        visualize_solution_plot(sheet.reservations, sheet.optimizedSheet, sheet.numRooms)
         sheet.transform_into_original_data_format()
         return sheet.sheet
     except:

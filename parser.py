@@ -1,5 +1,6 @@
 class Reservation:
-    def __init__(self, data):
+    def __init__(self, id, data):
+        self.id = id
         self.startTime = convertToHours(data['startTime'])
         self.endTime = convertToHours(data['endTime'])
         self.wantedRooms = data['wantedRooms']
@@ -43,8 +44,9 @@ class Sheet:
                     break  # Only assign to one room, so exit the inner loop
 
     def transform_into_original_data_format(self):
-        for idx, value in enumerate(self.sheet['reservation']):
-            self.sheet['reservation'][idx] = self.reservations[idx].transform_into_original_data_format()
+        result = []
+        for i in range(0, len(self.reservations)):
+            self.reservations[i].transform_into_original_data_format()
 
 class OptimizedSheet:
     def __init__(self,result):
@@ -58,9 +60,11 @@ def convertToMs(hours) -> int:
 
 def createReservations(reservations) -> list[Reservation]:
     result = []
+    i = 0
     for reservation in reservations:
         for room in reservation['wantedRooms']:
-            r = Reservation(reservation)
+            r = Reservation(i, reservation)
             r.wantedRooms = Room(room)
             result.append(r)
+        i += 1
     return result
