@@ -45,8 +45,30 @@ class Sheet:
 
     def transform_into_original_data_format(self):
         result = []
-        for i in range(0, len(self.reservations)):
-            self.reservations[i].transform_into_original_data_format()
+
+        # Step 1: Group reservations by ID
+        grouped_reservations = self.group_reservations_by_id()
+
+        # Step 2: For each group, aggregate the actualRooms
+        for reservation_id, reservations in grouped_reservations.items():
+            aggregated_res = {
+                'startTime': convertToMs(reservations[0].startTime),  # Assuming all reservations with the same ID have the same startTime
+                'endTime': convertToMs(reservations[0].endTime),      # Similarly for endTime
+                'wantedRooms': [r.wantedRooms.room for r in reservations],
+                'actualRooms': [r.actualRooms for r in reservations]
+            }
+            result.append(aggregated_res)
+
+        return result
+
+    def group_reservations_by_id(self) -> dict:
+        grouped_reservations = {}
+        for reservation in self.reservations:
+            reservation_id = reservation.id
+            if reservation_id not in grouped_reservations:
+                grouped_reservations[reservation_id] = []
+            grouped_reservations[reservation_id].append(reservation)
+        return grouped_reservations
 
 class OptimizedSheet:
     def __init__(self,result):

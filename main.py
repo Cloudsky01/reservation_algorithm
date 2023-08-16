@@ -140,6 +140,7 @@ def schedule():
         sheet = Sheet(sheet_data)
         sheet.optimizedSheet = is_schedulable(sheet.reservations, sheet.numRooms, int(sheet.startTime), int(sheet.endTime))
         sheet.transform_assignment()
+        sheet.group_reservations_by_id()
         [print(reservation.id) for reservation in sheet.reservations]
         visualize_solution_plot(sheet.reservations, sheet.optimizedSheet, sheet.numRooms)
         sheet.transform_into_original_data_format()
