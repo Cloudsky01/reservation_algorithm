@@ -30,7 +30,7 @@ class Sheet:
         self.connections = [Connection(connection) for connection in data['connections']]
         self.reservations: list[Reservation] = createReservations(data['reservation'])
         self.numRooms = len(data['connections'])
-        self.increment = data['increment']
+        self.increment = convertToHours(data['increment'] * 60 * 1000)  # Convert increment in minutes to hours
         self.startTime: int = convertToHours(data['startTime'])
         self.endTime: int = convertToHours(data['endTime'])
         self.optimizedSheet: OptimizedSheet = None

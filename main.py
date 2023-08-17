@@ -108,6 +108,7 @@ def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_
                     model.Add(assignment[i1][j] + assignment[i2][j] <= 1)
 
 
+
     # Number 1
     gaps = [[model.NewBoolVar(f"gap_{j}_time_{t}") for t in range(end_time - start_time)] for j in range(num_rooms_guess)]
 
@@ -161,6 +162,7 @@ def generate_random_reservations_without_wanted_room(start_time, end_time):
     end = random.randint(start + 1, start + 4)
     reservation = {"start": start, "end": end}
     return reservation
+
 
 @app.route('/', methods=['GET'])
 def index():
