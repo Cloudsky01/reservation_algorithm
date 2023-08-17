@@ -25,25 +25,57 @@ def visualize_solution_plot(reservations: list[Reservation], assignments, num_ro
     """
     
     # Set up the figure and axis
-    fig, ax = plt.subplots(figsize=(10, num_rooms))
-    ax.set_xlim(min(r.startTime for r in reservations), max(r.endTime for r in reservations))
-    ax.set_ylim(0, num_rooms)
+    fig, ax = plt.subplots(figsize=(num_rooms, 10))  # Adjust figsize to match the desired orientation
+    ax.set_ylim(max(r.endTime for r in reservations), min(r.startTime for r in reservations))  # Invert y-axis limits for time
+    ax.set_xlim(0, num_rooms)  # Set x-axis limits for rooms
     
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Room')
-    ax.set_yticks([i + 0.5 for i in range(num_rooms)])
-    ax.set_yticklabels([f'Room {i}' for i in range(num_rooms)])
+    ax.set_xlabel('Room')
+    ax.set_ylabel('Time')
+    ax.set_xticks([i + 0.5 for i in range(num_rooms)])
+    ax.set_xticklabels([f'Room {i}' for i in range(num_rooms)], rotation='vertical')
     
     # Loop through each reservation and room, checking assignments
     for i, reservation in enumerate(reservations):
         for j in range(num_rooms):
             if assignments[i][j] == 1:  # If reservation i is assigned to room j
-                rect = patches.Rectangle((reservation.startTime, j), reservation.endTime - reservation.startTime, 1, facecolor='blue', edgecolor='black')
+                rect = patches.Rectangle((j, reservation.endTime), 1, reservation.startTime - reservation.endTime, facecolor='blue', edgecolor='black')  # Adjust coordinates
                 ax.add_patch(rect)
-                ax.text((reservation.startTime + reservation.endTime) / 2, j + 0.5, f"R{i}", ha='center', va='center', color='white')
+                ax.text(j + 0.5, (reservation.startTime + reservation.endTime) / 2, f"R{i}", ha='center', va='center', color='white')
                 
     plt.tight_layout()
-    plt.savefig('schedule.png')
+    plt.savefig('schedule_inverted_time.png')  # Save the graph with inverted time axis
+
+
+    """
+    Visualize the reservation assignments.
+    
+    reservations: List of reservation dicts with "start" and "end" keys.
+    assignments: Result of the optimizer (2D list) where assignments[i][j] == 1 indicates
+                 that reservation i is assigned to room j.
+    num_rooms: Number of rooms.
+    """
+    
+    # Set up the figure and axis
+    fig, ax = plt.subplots(figsize=(10, num_rooms))
+    ax.set_xlim(min(r.startTime for r in reservations), max(r.endTime for r in reservations))
+    ax.set_ylim(num_rooms, 0)  # Invert the y-axis limits
+    
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Room')
+    ax.set_yticks([i + 0.5 for i in range(num_rooms)])
+    ax.set_yticklabels([f'Room {i}' for i in range(num_rooms)][::-1])  # Invert the y-axis tick labels
+    
+    # Loop through each reservation and room, checking assignments
+    for i, reservation in enumerate(reservations):
+        for j in range(num_rooms):
+            if assignments[i][j] == 1:  # If reservation i is assigned to room j
+                rect = patches.Rectangle((reservation.startTime, num_rooms - j - 1), reservation.endTime - reservation.startTime, 1, facecolor='blue', edgecolor='black')  # Flip the y-coordinate
+                ax.add_patch(rect)
+                ax.text((reservation.startTime + reservation.endTime) / 2, num_rooms - j - 0.5, f"R{i}", ha='center', va='center', color='white')  # Flip the y-coordinate
+                
+    plt.tight_layout()
+    plt.savefig('schedule.png')  # Save the inverted graph
+
 
 """
 The is_schedulable function takes in a list of reservations and a number of rooms to guess.
@@ -67,7 +99,7 @@ def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_
     for i in range(num_reservations):
         model.Add(sum(assignment[i]) == 1)
 
-    # OK - Number 2
+    # Number 2
     # No overlapping reservations in the same room
     for j in range(num_rooms_guess):
         for i1 in range(num_reservations):
@@ -76,7 +108,7 @@ def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_
                     model.Add(assignment[i1][j] + assignment[i2][j] <= 1)
 
 
-    # NOT OK - Number 1
+    # Number 1
     gaps = [[model.NewBoolVar(f"gap_{j}_time_{t}") for t in range(end_time - start_time)] for j in range(num_rooms_guess)]
 
     result_start = []
@@ -89,7 +121,7 @@ def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_
             model.Add(sum(result_end) - sum(result_start) <= gaps[j][t])
 
             
-    # OK - Number 3
+    # Number 3
     # Enforcing wantedRoom constraint
     for i, reservation in enumerate(reservations):
         if reservation.wantedRooms:  # Check if the reservation has a wantedRoom
