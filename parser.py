@@ -81,11 +81,13 @@ class OptimizedSheet:
     def __init__(self,result):
         self.result: list[list[int]] = result
 
+PRECISION_FACTOR = 4
+
 def convertToHours(ms) -> int:
-    return ms / 3600000
+    return int(ms / 3600000 * PRECISION_FACTOR)
 
 def convertToMs(hours) -> int:
-    return hours * 3600000
+    return int(hours * 3600000 / PRECISION_FACTOR)
 
 def createReservations(reservations) -> list[Reservation]:
     result = []

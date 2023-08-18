@@ -2,6 +2,8 @@ from ortools.sat.python import cp_model
 import random
 from flask_cors import CORS
 import matplotlib
+import math
+from data import x
 
 matplotlib.use('Agg')
 
@@ -10,7 +12,7 @@ import matplotlib.patches as patches
 
 from flask import Flask, request, jsonify
 import random
-from parser import Sheet, Reservation
+from parser import Sheet, Reservation, convertToHours, convertToMs, PRECISION_FACTOR
 
 app = Flask(__name__)
 
@@ -115,10 +117,13 @@ def is_schedulable(reservations: list[Reservation], num_rooms_guess: int, start_
     result_start = []
     result_end = []
 
+    # Calculate the new time range
+    time_range = end_time - start_time
+
     for j in range(num_rooms_guess):
-        for t in range(end_time - start_time):
-            result_start = [assignment[i][j] for i, reservation in enumerate(reservations) if reservation.startTime == t]
-            result_end = [assignment[i][j] for i, reservation in enumerate(reservations) if reservation.endTime == t]
+        for t in range(time_range):
+            result_start = [assignment[i][j] for i, reservation in enumerate(reservations) if convertToHours(math.floor(reservation.startTime)) == t]
+            result_end = [assignment[i][j] for i, reservation in enumerate(reservations) if convertToHours(math.ceil(reservation.endTime)) == t]
             model.Add(sum(result_end) - sum(result_start) <= gaps[j][t])
 
             
@@ -178,8 +183,8 @@ def schedule():
         visualize_solution_plot(sheet.reservations, sheet.optimizedSheet, sheet.numRooms)
         sheet.transform_into_original_data_format()
         return sheet.sheet
-    except:
-        return "Error"
+    except Exception as e:
+        return str(e)
 
 
 
