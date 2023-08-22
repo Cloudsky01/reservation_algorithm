@@ -12,7 +12,10 @@ import matplotlib.patches as patches
 
 from flask import Flask, request, jsonify
 import random
-from parser import Sheet, Reservation, convertToHours, convertToMs, PRECISION_FACTOR
+from parser import Reservation, convertToHours, convertToMs, PRECISION_FACTOR
+
+from optimizer import getOptimizedSheet
+from classes import Sheet
 
 app = Flask(__name__)
 
@@ -42,41 +45,10 @@ def visualize_solution_plot(reservations: list[Reservation], assignments, num_ro
             if assignments[i][j] == 1:  # If reservation i is assigned to room j
                 rect = patches.Rectangle((j, reservation.endTime), 1, reservation.startTime - reservation.endTime, facecolor='blue', edgecolor='black')  # Adjust coordinates
                 ax.add_patch(rect)
-                ax.text(j + 0.5, (reservation.startTime + reservation.endTime) / 2, f"R{i}", ha='center', va='center', color='white')
+                ax.text(j + 0.5, (reservation.startTime + reservation.endTime) / 2, reservation.id[0:4], ha='center', va='center', color='white')
                 
     plt.tight_layout()
     plt.savefig('schedule_inverted_time.png')  # Save the graph with inverted time axis
-
-
-    """
-    Visualize the reservation assignments.
-    
-    reservations: List of reservation dicts with "start" and "end" keys.
-    assignments: Result of the optimizer (2D list) where assignments[i][j] == 1 indicates
-                 that reservation i is assigned to room j.
-    num_rooms: Number of rooms.
-    """
-    
-    # Set up the figure and axis
-    fig, ax = plt.subplots(figsize=(10, num_rooms))
-    ax.set_xlim(min(r.startTime for r in reservations), max(r.endTime for r in reservations))
-    ax.set_ylim(num_rooms, 0)  # Invert the y-axis limits
-    
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Room')
-    ax.set_yticks([i + 0.5 for i in range(num_rooms)])
-    ax.set_yticklabels([f'Room {i}' for i in range(num_rooms)][::-1])  # Invert the y-axis tick labels
-    
-    # Loop through each reservation and room, checking assignments
-    for i, reservation in enumerate(reservations):
-        for j in range(num_rooms):
-            if assignments[i][j] == 1:  # If reservation i is assigned to room j
-                rect = patches.Rectangle((reservation.startTime, num_rooms - j - 1), reservation.endTime - reservation.startTime, 1, facecolor='blue', edgecolor='black')  # Flip the y-coordinate
-                ax.add_patch(rect)
-                ax.text((reservation.startTime + reservation.endTime) / 2, num_rooms - j - 0.5, f"R{i}", ha='center', va='center', color='white')  # Flip the y-coordinate
-                
-    plt.tight_layout()
-    plt.savefig('schedule.png')  # Save the inverted graph
 
 
 """
@@ -178,11 +150,15 @@ def schedule():
     try:
         sheet_data = request.get_json()
         sheet = Sheet(sheet_data)
-        sheet.optimizedSheet = is_schedulable(sheet.reservations, sheet.numRooms, int(sheet.startTime), int(sheet.endTime), sheet)
-        sheet.transform_assignment()
-        visualize_solution_plot(sheet.reservations, sheet.optimizedSheet, sheet.numRooms)
-        sheet.transform_into_original_data_format()
-        return sheet.sheet
+        solution =  getOptimizedSheet(sheet)
+        visualize_solution_plot(sheet.reservations, solution, len(sheet.rooms))
+        for i, reservation in enumerate(sheet.reservations):
+            sheet.reservations[i].actualRooms = [
+                sheet.rooms[r]
+                for r in range(len(sheet.rooms))
+                if solution[i][r] == 1
+            ]
+        return solution
     except Exception as e:
         return str(e)
 
