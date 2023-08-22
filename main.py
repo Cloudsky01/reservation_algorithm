@@ -152,6 +152,7 @@ def schedule():
         sheet = Sheet(sheet_data)
         solution =  getOptimizedSheet(sheet)
         visualize_solution_plot(sheet.reservations, solution, len(sheet.rooms))
+        #untested
         for i, reservation in enumerate(sheet.reservations):
             sheet.reservations[i].actualRooms = [
                 sheet.rooms[r]
