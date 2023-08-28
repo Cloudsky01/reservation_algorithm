@@ -16,6 +16,7 @@ from parser import Reservation, convertToHours, convertToMs, PRECISION_FACTOR
 
 from optimizer import getOptimizedSheet
 from classes import Sheet
+import json
 
 app = Flask(__name__)
 
@@ -159,7 +160,7 @@ def schedule():
                 for r in range(len(sheet.rooms))
                 if solution[i][r] == 1
             ]
-        return solution
+        return [json.dumps(reservation.__dict__) for reservation in sheet.reservations]
     except Exception as e:
         return str(e)
 
