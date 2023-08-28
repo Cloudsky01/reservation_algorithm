@@ -9,11 +9,11 @@ def getOptimizedSheet(sheet: Sheet):
     # Variables
     assignments_i_r = [[0 for _ in sheet.rooms] for _ in sheet.reservations]
     sol_i_s = [[] for _ in sheet.reservations]
-    gap_r_t = [[0 for _ in range(sheet.endTime)] for _ in sheet.rooms]
+    gap_r_t = [[0 for _ in range(sheet.endTime+1)] for _ in sheet.rooms]
 
     # Arrays to store assignements_i_r variables that start and end at time t in room r
-    start_t_r = [[[] for _ in sheet.rooms] for _ in range(sheet.endTime)]
-    end_t_r = [[[] for _ in sheet.rooms] for _ in range(sheet.endTime)]
+    start_t_r = [[[] for _ in sheet.rooms] for _ in range(sheet.endTime+1)]
+    end_t_r = [[[] for _ in sheet.rooms] for _ in range(sheet.endTime+1)]
 
     for i, reservation in enumerate(sheet.reservations):
         for r, room in enumerate(sheet.rooms):
@@ -46,7 +46,7 @@ def getOptimizedSheet(sheet: Sheet):
 
     # Contrainte 1
     for r, room in enumerate(sheet.rooms):
-        for t in range(sheet.endTime):
+        for t in range(sheet.endTime+1):
             gap_r_t[r][t] = model.NewBoolVar(f"gap_r{r}_t{t}")
             model.Add(sum(end_t_r[t][r]) - sum(start_t_r[t][r]) <= gap_r_t[r][t])
             print(sum(end_t_r[t][r]))
