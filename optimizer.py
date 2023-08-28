@@ -49,7 +49,6 @@ def getOptimizedSheet(sheet: Sheet):
         for t in range(sheet.endTime+1):
             gap_r_t[r][t] = model.NewBoolVar(f"gap_r{r}_t{t}")
             model.Add(sum(end_t_r[t][r]) - sum(start_t_r[t][r]) <= gap_r_t[r][t])
-            print(sum(end_t_r[t][r]))
 
     model.Minimize(
         10000 + sum([sum(gap) for gap in gap_r_t]) - sum([sum(sol) for sol in sol_i_s])
