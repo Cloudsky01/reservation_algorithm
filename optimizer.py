@@ -1,6 +1,5 @@
 from classes import Sheet
 from ortools.sat.python import cp_model
-import numpy as np
 
 
 def getOptimizedSheet(sheet: Sheet):
