@@ -16,13 +16,10 @@ def schedule():
         solution =  getOptimizedSheet(sheet)
         visualize_solution_plot(sheet.reservations, solution, len(sheet.rooms))
         #untested
+        output = {}
         for i, reservation in enumerate(sheet.reservations):
-            sheet.reservations[i].actualRooms = [
-                sheet.rooms[r]
-                for r in range(len(sheet.rooms))
-                if solution[i][r] == 1
-            ]
-        return [json.dumps(reservation.__dict__) for reservation in sheet.reservations]
+            output[reservation.id] = [sheet.rooms[r] for r in range(len(sheet.rooms)) if solution[i][r] == 1 ]
+        return json.dumps(output)
     except Exception as e:
         return str(e)
 
