@@ -8,7 +8,8 @@ import json
 import firebase_admin
 from firebase_admin import credentials, auth
 
-cred = credentials.Certificate('C:\Users\apoel\Desktop\reservation_algorithm\privatekey.json')
+# Add private key to the project root directory
+cred = credentials.Certificate('./privatekey.json')
 firebase_admin.initialize_app(cred)
 
 @functions_framework.http
