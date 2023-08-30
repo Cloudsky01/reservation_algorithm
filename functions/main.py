@@ -1,25 +1,16 @@
-import functions_framework
-from flask import Flask, request
+# Welcome to Cloud Functions for Firebase for Python!
+# To get started, simply uncomment the below code or create your own.
+# Deploy with `firebase deploy`
+
+from firebase_functions import https_fn
+from firebase_admin import initialize_app
 from utilities import visualize_solution_plot
 from optimizer import getOptimizedSheet
 from classes import Sheet
 import json
 
-import firebase_admin
-from firebase_admin import credentials, auth
-
-cred = credentials.Certificate('C:\Users\apoel\Desktop\reservation_algorithm\privatekey.json')
-firebase_admin.initialize_app(cred)
-
-@functions_framework.http
-def schedule():
-    id_token = request.headers.get('Authorization').split('Bearer ')[1]
-    try:
-        decoded_token = auth.verify_id_token(id_token)
-        uid = decoded_token['uid']
-    except ValueError:
-        # Token is invalid
-        return "Unauthorized", 401
+@https_fn.on_request()
+def schedule(request: https_fn.Request) -> https_fn.Response:
     try:
         sheet_data = request.get_json()
         sheet = Sheet(sheet_data)
@@ -32,6 +23,3 @@ def schedule():
         return json.dumps(output)
     except Exception as e:
         return str(e)
-
-
-
