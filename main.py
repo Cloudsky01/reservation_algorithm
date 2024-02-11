@@ -1,38 +1,31 @@
 import functions_framework
-from flask import Flask, request
-from utilities import visualize_solution_plot
+from flask import Flask, request, jsonify
 from optimizer import getOptimizedSheet
 from classes import Sheet
-import json
 
-import firebase_admin
-from firebase_admin import credentials, auth
-
-# Add private key to the project root directory
-cred = credentials.Certificate('./privatekey.json')
-firebase_admin.initialize_app(cred)
+def cors_headers():
+    return {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+    }
 
 @functions_framework.http
-def schedule():
-    id_token = request.headers.get('Authorization').split('Bearer ')[1]
-    try:
-        decoded_token = auth.verify_id_token(id_token)
-        uid = decoded_token['uid']
-    except ValueError:
-        # Token is invalid
-        return "Unauthorized", 401
+def schedule(request):
+    # Handle OPTIONS request for CORS preflight
+    if request.method == 'OPTIONS':
+        return ('', 204, cors_headers())
+    
+    # Main request
     try:
         sheet_data = request.get_json()
         sheet = Sheet(sheet_data)
-        solution =  getOptimizedSheet(sheet)
-        visualize_solution_plot(sheet.reservations, solution, len(sheet.rooms))
-        #untested
+        solution = getOptimizedSheet(sheet)
         output = {}
         for i, reservation in enumerate(sheet.reservations):
-            output[reservation.id] = [sheet.rooms[r] for r in range(len(sheet.rooms)) if solution[i][r] == 1 ]
-        return json.dumps(output)
+            output[reservation.id] = [sheet.rooms[r] for r in range(len(sheet.rooms)) if solution[i][r] == 1]
+
+        return (jsonify(output), 200, cors_headers())
+
     except Exception as e:
-        return str(e)
-
-
-
+        return (str(e), 500, cors_headers())
