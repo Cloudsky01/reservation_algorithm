@@ -49,13 +49,12 @@ def getOptimizedSheet(sheet: Sheet):
             gap_r_t[r][t] = model.NewBoolVar(f"gap_r{r}_t{t}")
             model.Add(sum(end_t_r[t][r]) - sum(start_t_r[t][r]) <= gap_r_t[r][t])
 
-    # Modify the objective function to include room priorities
     room_priority_penalty = sum(
-        assignments_i_r[i][r] * priority_list[r] for i in range(len(sheet.reservations)) for r in range(len(sheet.rooms))
+        assignments_i_r[i][r] * -priority_list[r] for i in range(len(sheet.reservations)) for r in range(len(sheet.rooms))
     )
 
     model.Minimize(
-        10000 + sum([sum(gap) for gap in gap_r_t]) - sum([sum(sol) for sol in sol_i_s]) + room_priority_penalty
+        sum([sum(gap) for gap in gap_r_t]) - sum([sum(sol) for sol in sol_i_s]) + room_priority_penalty
     )
 
     solver = cp_model.CpSolver()
