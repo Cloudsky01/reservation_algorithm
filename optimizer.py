@@ -1,7 +1,6 @@
 from classes import Sheet
 from ortools.sat.python import cp_model
 
-
 def getOptimizedSheet(sheet: Sheet):
     model = cp_model.CpModel()
 
@@ -9,6 +8,7 @@ def getOptimizedSheet(sheet: Sheet):
     assignments_i_r = [[0 for _ in sheet.rooms] for _ in sheet.reservations]
     sol_i_s = [[] for _ in sheet.reservations]
     gap_r_t = [[0 for _ in range(sheet.endTime+1)] for _ in sheet.rooms]
+    priority_list = [priority for priority in sheet.roomPriority]
 
     # Arrays to store assignements_i_r variables that start and end at time t in room r
     start_t_r = [[[] for _ in sheet.rooms] for _ in range(sheet.endTime+1)]
@@ -49,8 +49,13 @@ def getOptimizedSheet(sheet: Sheet):
             gap_r_t[r][t] = model.NewBoolVar(f"gap_r{r}_t{t}")
             model.Add(sum(end_t_r[t][r]) - sum(start_t_r[t][r]) <= gap_r_t[r][t])
 
+    # Modify the objective function to include room priorities
+    room_priority_penalty = sum(
+        assignments_i_r[i][r] * priority_list[r] for i in range(len(sheet.reservations)) for r in range(len(sheet.rooms))
+    )
+
     model.Minimize(
-        10000 + sum([sum(gap) for gap in gap_r_t]) - sum([sum(sol) for sol in sol_i_s])
+        10000 + sum([sum(gap) for gap in gap_r_t]) - sum([sum(sol) for sol in sol_i_s]) + room_priority_penalty
     )
 
     solver = cp_model.CpSolver()

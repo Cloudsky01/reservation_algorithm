@@ -20,3 +20,4 @@ class Sheet:
         self.rooms = sheet["rooms"]
         self.increment = sheet["increment"]
         self.reservations = [ Reservation(res, i, self.increment, sheet["startTime"]) for i, res in enumerate(sheet["reservations"])]
+        self.roomPriority = [roomConfig["priority"] for roomConfig in sheet["roomConfigs"]]
