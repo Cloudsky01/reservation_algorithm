@@ -50,11 +50,11 @@ def getOptimizedSheet(sheet: Sheet):
             model.Add(sum(end_t_r[t][r]) - sum(start_t_r[t][r]) <= gap_r_t[r][t])
 
     room_priority_penalty = sum(
-        assignments_i_r[i][r] * -priority_list[r] for i in range(len(sheet.reservations)) for r in range(len(sheet.rooms))
+        assignments_i_r[i][r] * priority_list[r] for i in range(len(sheet.reservations)) for r in range(len(sheet.rooms))
     )
 
     model.Minimize(
-        sum([sum(gap) for gap in gap_r_t]) - sum([sum(sol) for sol in sol_i_s]) + room_priority_penalty
+        sheet.gapFactor * sum([sum(gap) for gap in gap_r_t]) - sum([sum(sol) for sol in sol_i_s]) + sheet.priorityFactor * room_priority_penalty
     )
 
     solver = cp_model.CpSolver()
