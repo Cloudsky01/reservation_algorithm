@@ -13,5 +13,5 @@ functions-framework --target=schedule
 # Deploying the application
 - Deploy the application using the following command:
 ```bash
-gcloud functions deploy schedule --runtime python39 --trigger-http --allow-unauthenticated
+gcloud functions deploy schedule --gen2 --runtime python39 --trigger-http --allow-unauthenticated --region=us-central1
 ```
