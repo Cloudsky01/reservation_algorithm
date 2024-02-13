@@ -26,6 +26,7 @@ def schedule(request):
         if not sheet_data:
             raise ValueError("No input data provided")
         sheet = Sheet(sheet_data)
+        logging.debug("Processing request for tenant %s", sheet.tenant)
         solution = getOptimizedSheet(sheet)
         output = {}
         for i, reservation in enumerate(sheet.reservations):
