@@ -2,6 +2,11 @@ import math
 from typing import List, Optional
 
 
+ROOM_CONNECTIONS_FACTOR = 1000
+GAP_FACTOR = 100
+PRIORITY_FACTOR = 1
+
+
 class Reservation:
     def __init__(self, res: dict, index, increment, sheetStart):
         self.id = res["id"]
@@ -22,5 +27,6 @@ class Sheet:
         self.reservations = [ Reservation(res, i, self.increment, sheet["startTime"]) for i, res in enumerate(sheet["reservations"])]
         self.roomPriority = [roomConfig["priority"] for roomConfig in sheet["roomConfigs"]]
         self.tenant = sheet["tenant"]
-        self.priorityFactor = sheet["priorityFactor"]
-        self.gapFactor = sheet["gapFactor"]
+        self.priorityFactor = sheet.get("priorityFactor", PRIORITY_FACTOR)
+        self.gapFactor = sheet.get("gapFactor", GAP_FACTOR)
+        self.roomConnections = sheet.get("roomConnectionsFactor", ROOM_CONNECTIONS_FACTOR)
