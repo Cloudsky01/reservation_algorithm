@@ -26,7 +26,7 @@ class Sheet:
         self.increment = sheet["increment"]
         self.reservations = [ Reservation(res, i, self.increment, sheet["startTime"]) for i, res in enumerate(sheet["reservations"])]
         self.roomPriority = [roomConfig["priority"] for roomConfig in sheet["roomConfigs"]]
-        self.tenant = sheet["tenant"]
+        self.tenant = sheet.get("tenant", "unknown")
         self.priorityFactor = sheet.get("priorityFactor", PRIORITY_FACTOR)
         self.gapFactor = sheet.get("gapFactor", GAP_FACTOR)
         self.roomConnections = sheet.get("roomConnectionsFactor", ROOM_CONNECTIONS_FACTOR)
